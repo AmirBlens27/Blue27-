@@ -1,0 +1,33 @@
+import pandas as pd
+import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
+
+# خواندن فایل CSV
+df = pd.read_csv("emails_labeled.csv")
+
+# پاکسازی متن
+def clean_text(text):
+    text = str(text).lower()
+    text = re.sub(r'[^\w\s]', '', text)
+    return text
+
+df["Cleaned_Body"] = df["Body"].apply(clean_text)
+
+# تبدیل متن به ویژگی عددی
+vectorizer = TfidfVectorizer(stop_words='english')
+X = vectorizer.fit_transform(df["Cleaned_Body"])
+y = df["Label"].map({'ham': 0, 'spam': 1})
+
+# تقسیم داده‌ها برای آموزش و آزمایش
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# آموزش مدل
+model = RandomForestClassifier()
+model.fit(X_train, y_train)
+
+# پیش‌بینی و گزارش
+y_pred = model.predict(X_test)
+print(classification_report(y_test, y_pred))
