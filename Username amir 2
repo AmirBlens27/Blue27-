@@ -1,0 +1,47 @@
+import pandas as pd
+
+# بارگذاری داده
+df = pd.read_csv("enron_labeled_emails.csv")
+
+# نمایش چند نمونه
+print(df.head())
+
+# آمار پایه
+print("تعداد کل ایمیل‌ها:", len(df))
+print("توزیع برچسب‌ها:\n", df["Label"].value_counts())
+
+# میانگین طول پیام‌ها
+df["Body_Length"] = df["Body"].apply(lambda x: len(str(x).split()))
+print("میانگین طول پیام‌ها:", df["Body_Length"].mean())
+from sklearn.feature_extraction.text import TfidfVectorizer
+from nltk.corpus import stopwords
+import re
+
+def clean_text(text):
+    text = str(text).lower()
+    text = re.sub(r'<.*?>', '', text)   # حذف HTML
+    text = re.sub(r'[^a-zA-Z\s]', '', text)  # حذف کاراکترهای غیرحروفی
+    return text
+
+df["Clean_Body"] = df["Body"].apply(clean_text)
+
+vectorizer = TfidfVectorizer(stop_words='english', max_features=3000)
+X = vectorizer.fit_transform(df["Clean_Body"])
+y = df["Label"].map({'ham': 0, 'spam': 1})
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+model = RandomForestClassifier(n_estimators=100)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+import matplotlib.pyplot as plt
+
+labels = df["Label"].value_counts()
+plt.pie(labels, labels=["Ham", "Spam"], autopct="%1.1f%%", colors=["green", "red"])
+plt.title("توزیع ایمیل‌ها بر اساس برچسب امنیتی")
+plt.show()
+
